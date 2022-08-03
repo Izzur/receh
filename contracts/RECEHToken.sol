@@ -1,30 +1,34 @@
-//SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+// Import this file to use console.log
+import "hardhat/console.sol";
 
-contract RECEHToken is ERC20 {
-    uint256 private lastTrxAmount;
+contract RECEHToken {
+    uint public unlockTime;
+    address payable public owner;
 
-    constructor() ERC20("Receh", "RECEH") {
-        _mint(msg.sender, 1_000 * 10 ** decimals());
+    event Withdrawal(uint amount, uint when);
+
+    constructor(uint _unlockTime) payable {
+        require(
+            block.timestamp < _unlockTime,
+            "Unlock time should be in the future"
+        );
+
+        unlockTime = _unlockTime;
+        owner = payable(msg.sender);
     }
 
-    function decimals() public view virtual override returns (uint8) {
-        return 2;
-    }
+    function withdraw() public {
+        // Uncomment this line to print a log in your terminal
+        // console.log("Unlock time is %o and block timestamp is %o", unlockTime, block.timestamp);
 
-    function totalSupply() public view virtual override returns (uint256) {
-        return 1_000_000 * 10 ** decimals();
-    }
+        require(block.timestamp >= unlockTime, "You can't withdraw yet");
+        require(msg.sender == owner, "You aren't the owner");
 
-    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
-        lastTrxAmount = amount;
-        _transfer(_msgSender(), recipient, amount);
-        return true;
-    }
+        emit Withdrawal(address(this).balance, block.timestamp);
 
-    function getLastTransactionAmount() public view returns (uint256) {
-        return lastTrxAmount;
+        owner.transfer(address(this).balance);
     }
 }
